@@ -49,31 +49,31 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         
-        # --- ARCHITECT FIX V22: THE AIRDROP ---
-        echo "⚠️ Starting Surgical Procedure..."
+        # --- ARCHITECT FIX V24: DIRECT DOWNLOAD ---
+        echo "⚠️ Starting V24 Procedure..."
         cd device/nothing/galaga
         
-        # 1. Download the SURGICAL TOOLS (Direct from Google)
-        echo "⬇️ Downloading Unpack Tools..."
-        git clone https://android.googlesource.com/platform/system/tools/mkbootimg mkbootimg_tools
+        # 1. Download the Tool (Single Python File)
+        echo "⬇️ Fetching Surgeon Tool..."
+        wget https://raw.githubusercontent.com/LineageOS/android_system_tools_mkbootimg/lineage-18.1/unpack_bootimg.py -O unpack_bootimg.py
         
-        # 2. Download the PATIENT (Your 64MB File)
+        # 2. Download the Patient (Your 64MB File)
         echo "⬇️ Downloading Boot Image..."
         wget "https://files.catbox.moe/j5ib7r.img" -O full_boot.img
         
         # 3. Perform SURGERY (Extract Kernel)
         echo "🔪 Extracting Kernel..."
-        python3 mkbootimg_tools/unpack_bootimg.py --boot_img full_boot.img --out .
+        python3 unpack_bootimg.py --boot_img full_boot.img --out .
         
-        # 4. Identify and Rename the Heart
+        # 4. Identify and Rename
         echo "🔎 Identifying parts..."
         ls -lh
-        # Usually named 'kernel', but just in case, we rename any kernel-like file
         mv *kernel* kernel || true
         
         # 5. Verify Success
         if [ -f "kernel" ]; then
-            echo "✅ Kernel Extracted Successfully!"
+            echo "✅ Kernel Extracted Successfully! Size:"
+            du -h kernel
         else
             echo "❌ CRITICAL FAILURE: Kernel not found!"
             exit 1
