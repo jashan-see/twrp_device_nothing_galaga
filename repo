@@ -1,0 +1,11 @@
+#!/bin/bash
+echo "=== EXECUTING MASTER PRO-TREE CLOUD PUSH ==="
+cd /workspaces/twrp_device_nothing_galaga
+git add .
+git commit -m "Merge advanced vendor blobs and optimize partition paths"
+# Trapping the remote path inside an un-splittable string variable array
+REMOTE_URL="https://github.com"
+git remote rm origin 2>/dev/null
+git remote add origin "$REMOTE_URL"
+git push origin main --force
+echo "=== CODESYNC COMPLETE! ==="
