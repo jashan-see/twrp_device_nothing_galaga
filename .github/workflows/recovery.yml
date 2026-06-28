@@ -49,12 +49,13 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         
-        # --- ARCHITECT FIX V16: DIMENSIONS ---
-        echo "⚠️ Setting Partition Sizes..."
+        # --- ARCHITECT FIX V19: THE REAL ENGINE ---
+        echo "⚠️ Downloading Real Kernel..."
         cd device/nothing/galaga
         
-        # 1. Create Dummy Kernel (10MB)
-        dd if=/dev/zero of=kernel bs=1M count=10
+        # 1. DOWNLOAD REAL ENGINE (Your Link)
+        # We rename it to 'kernel' so the build system finds it
+        wget "https://files.catbox.moe/j5ib7r.img" -O kernel
         
         # 2. BoardConfig.mk (The Blueprint)
         echo 'DEVICE_PATH := device/nothing/galaga' > BoardConfig.mk
@@ -78,7 +79,7 @@ jobs:
         echo 'BOARD_USERDATAIMAGE_PARTITION_SIZE := 3221225472' >> BoardConfig.mk
         echo 'BOARD_FLASH_BLOCK_SIZE := 131072' >> BoardConfig.mk
         
-        # --- THE FIX: HARDCODED KERNEL PATH ---
+        # --- THE FIX: POINT TO REAL KERNEL ---
         echo 'TARGET_PREBUILT_KERNEL := device/nothing/galaga/kernel' >> BoardConfig.mk
         echo 'BOARD_KERNEL_IMAGE_NAME := Image' >> BoardConfig.mk
         
