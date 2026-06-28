@@ -47,39 +47,35 @@ jobs:
       run: |
         cd workspace
         export ALLOW_MISSING_DEPENDENCIES=true
+        export BUILD_BROKEN_DUP_RULES=true
+        export BUILD_BROKEN_ELF_PREBUILT_PRODUCT_COPY_FILES=true
         source build/envsetup.sh
         
-        # --- ARCHITECT FIX V30: RESTORE SCREEN RESOLUTION ---
-        echo "⚠️ Starting V30 Procedure (Resolution Fix)..."
+        # --- ARCHITECT FIX V31: AOSP CLEAN START ---
+        echo "⚠️ Starting V31 Procedure (The Clean Slate)..."
         cd device/nothing/galaga
         
-        # 1. Download Surgeon Tool (MASTER BRANCH)
+        # 1. Download Surgeon Tool (Master for Android 14)
         wget https://raw.githubusercontent.com/LineageOS/android_system_tools_mkbootimg/master/unpack_bootimg.py -O unpack_bootimg.py
         
-        # 2. Download ALL Patient Files
-        echo "⬇️ Downloading The Trinity..."
+        # 2. Download The Trinity
+        echo "⬇️ Downloading Files..."
         wget "https://files.catbox.moe/j5ib7r.img" -O full_boot.img
         wget "https://files.catbox.moe/f1854z.img" -O dtbo.img
         wget "https://files.catbox.moe/6kziny.img" -O vendor_boot.img
         
         # 3. Extract Kernel
-        echo "🔪 Extracting Kernel..."
         python3 unpack_bootimg.py --boot_img full_boot.img --out . || true
-        if [ -f "kernel" ]; then
-            echo "✅ Kernel found."
-        else
-            mv *kernel* kernel || echo "⚠️ Kernel rename skip"
-        fi
+        mv *kernel* kernel || true
         
         # 4. Extract DTB
-        echo "🧠 Extracting DTB from Vendor..."
         python3 unpack_bootimg.py --boot_img vendor_boot.img --out out_vendor || true
         if [ -f "out_vendor/dtb" ]; then
             mv out_vendor/dtb dtb.img
-            echo "✅ DTB Extracted Successfully!"
+            echo "✅ DTB Extracted!"
         fi
         
-        # --- CONFIGURATION ---
+        # --- CONFIGURATION (THE FINAL FIX) ---
         
         echo 'DEVICE_PATH := device/nothing/galaga' > BoardConfig.mk
         echo 'TARGET_ARCH := arm64' >> BoardConfig.mk
@@ -87,23 +83,24 @@ jobs:
         echo 'TARGET_CPU_ABI := arm64-v8a' >> BoardConfig.mk
         echo 'TARGET_CPU_VARIANT := generic' >> BoardConfig.mk
         echo 'TARGET_BOARD_PLATFORM := mt6886' >> BoardConfig.mk
-        echo 'TARGET_NO_BOOTLOADER := true' >> BoardConfig.mk
-        echo 'TARGET_USES_UEFI := true' >> BoardConfig.mk
-        echo 'BOARD_HAS_LARGE_FILESYSTEM := true' >> BoardConfig.mk
         
-        # --- V30 FIX: SCREEN SETTINGS (Restored) ---
-        echo 'TARGET_SCREEN_WIDTH := 1080' >> BoardConfig.mk
-        echo 'TARGET_SCREEN_HEIGHT := 2400' >> BoardConfig.mk
-        echo 'TW_THEME := portrait_hdpi' >> BoardConfig.mk
-        
-        # Sizing & Security Bypass
+        # Partition Sizes (Added Vendor Boot to prevent crash)
         echo 'BOARD_BOOTIMAGE_PARTITION_SIZE := 134217728' >> BoardConfig.mk
         echo 'BOARD_RECOVERYIMAGE_PARTITION_SIZE := 134217728' >> BoardConfig.mk
+        echo 'BOARD_VENDOR_BOOTIMAGE_PARTITION_SIZE := 134217728' >> BoardConfig.mk
         echo 'BOARD_SYSTEMIMAGE_PARTITION_SIZE := 3221225472' >> BoardConfig.mk
         echo 'BOARD_USERDATAIMAGE_PARTITION_SIZE := 3221225472' >> BoardConfig.mk
         echo 'BOARD_FLASH_BLOCK_SIZE := 131072' >> BoardConfig.mk
+        
+        # Security & Flags
         echo 'BOARD_AVB_ENABLE := false' >> BoardConfig.mk
         echo 'BOARD_AVB_RECOVERY_ADD_HASH_FOOTER := false' >> BoardConfig.mk
+        echo 'BOARD_RAMDISK_USE_LZMA := true' >> BoardConfig.mk
+        
+        # Screen
+        echo 'TARGET_SCREEN_WIDTH := 1080' >> BoardConfig.mk
+        echo 'TARGET_SCREEN_HEIGHT := 2400' >> BoardConfig.mk
+        echo 'TW_THEME := portrait_hdpi' >> BoardConfig.mk
         
         # INJECT PIECES
         echo 'TARGET_PREBUILT_KERNEL := device/nothing/galaga/kernel' >> BoardConfig.mk
@@ -120,9 +117,8 @@ jobs:
         echo 'LOCAL_PATH := $(call my-dir)' > Android.mk
         echo 'include $(call all-makefiles-under,$(LOCAL_PATH))' >> Android.mk
 
-        # 8. Product Config (64-Bit)
-        echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)' > omni_galaga.mk
-        echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)' >> omni_galaga.mk
+        # 8. Product Config (SWITCHING TO AOSP ARM64 - The "Safe Mode")
+        echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/aosp_arm64.mk)' > omni_galaga.mk
         echo '$(call inherit-product, device/nothing/galaga/device.mk)' >> omni_galaga.mk
         echo 'PRODUCT_DEVICE := galaga' >> omni_galaga.mk
         echo 'PRODUCT_NAME := omni_galaga' >> omni_galaga.mk
@@ -139,7 +135,8 @@ jobs:
         # --- BUILD START ---
         echo "🚀 Starting Build..."
         lunch omni_galaga-eng
-        mka recoveryimage || echo "❌ BUILD FAILED!"
+        # I removed the "|| echo" so if it fails, it turns RED immediately.
+        mka recoveryimage
         
         # --- DEBUG CHECK ---
         echo "🔎 Checking output..."
@@ -150,4 +147,3 @@ jobs:
       with:
         name: TWRP-Recovery
         path: workspace/out/target/product/galaga/recovery.img
-        if-no-files-found: error
