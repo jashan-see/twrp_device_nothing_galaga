@@ -49,24 +49,27 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         
-        # --- SHERLOCK HOLMES DETECTOR ---
-        echo "Debugging: Listing files in device tree..."
-        ls -R device/nothing/galaga
+        # --- MACGYVER FIX: GENERATE MISSING KEYS ---
+        echo "⚠️ Fixing broken device tree..."
+        cd device/nothing/galaga
         
-        echo "Reading AndroidProducts.mk..."
-        # Extract the exact lunch combo
-        if [ -f device/nothing/galaga/AndroidProducts.mk ]; then
-            LUNCH_COMBO=$(grep "COMMON_LUNCH_CHOICES" device/nothing/galaga/AndroidProducts.mk | cut -d ":" -f 2 | cut -d "-" -f 1 | tr -d '[:space:]')
-        fi
+        # 1. Create the Instruction Manual
+        echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)' > omni_galaga.mk
+        echo '$(call inherit-product, device/nothing/galaga/device.mk)' >> omni_galaga.mk
+        echo 'PRODUCT_DEVICE := galaga' >> omni_galaga.mk
+        echo 'PRODUCT_NAME := omni_galaga' >> omni_galaga.mk
+        echo 'PRODUCT_BRAND := Nothing' >> omni_galaga.mk
+        echo 'PRODUCT_MODEL := CMF Phone 2 Pro' >> omni_galaga.mk
         
-        # Fallback
-        if [ -z "$LUNCH_COMBO" ]; then
-            echo "Warning: Could not read AndroidProducts.mk. Trying generic fallback..."
-            LUNCH_COMBO="omni_galaga"
-        fi
+        # 2. Create the Lunch Menu
+        echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/omni_galaga.mk' > AndroidProducts.mk
+        echo 'COMMON_LUNCH_CHOICES := omni_galaga-eng' >> AndroidProducts.mk
         
-        echo "TARGET DETECTED: $LUNCH_COMBO"
-        lunch ${LUNCH_COMBO}-eng
+        echo "✅ Missing files created! Returning to build root..."
+        cd ../../..
+        
+        # --- BUILD ---
+        lunch omni_galaga-eng
         mka recoveryimage
 
     - name: Upload Recovery Image
