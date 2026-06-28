@@ -1,3 +1,4 @@
+
 name: Mobile Cloud Compiler
 
 on:
@@ -6,36 +7,35 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
     - name: Check Out Code
       uses: actions/checkout@v4
 
     - name: Clean Up Space
-      uses: rokibhasansagar/slimhub_actions@main
+      run: |
+        sudo rm -rf /usr/share/dotnet /etc/mysql /etc/php
+        sudo apt-get clean
 
     - name: Initialize Workspace
       run: |
-        mkdir workspace
-        cd workspace
-        echo "Workspace Initialized"
+        mkdir -p workspace
 
     - name: Prepare Build Environment
       run: |
         sudo apt update
-        sudo apt -y install git-core gnupg flex bison gperf build-essential zip curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses-dev x11proto-dev libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig
+        sudo apt -y install git-core gnupg flex bison gperf build-essential zip curl zlib1g-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig
 
     - name: Install Repo
       run: |
-        mkdir ~/bin
-        curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+        mkdir -p ~/bin
+        curl https://googleapis.com > ~/bin/repo
         chmod a+x ~/bin/repo
         sudo ln -sf ~/bin/repo /usr/bin/repo
 
     - name: Sync TWRP Source (Minimal)
       run: |
         cd workspace
-        repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
+        repo init --depth=1 -u https://github.com -b twrp-12.1
         repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
 
     - name: Clone Your Device Tree
@@ -48,100 +48,8 @@ jobs:
         cd workspace
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
-        
-        # --- ARCHITECT FIX V32: THE FRANKENSTEIN ---
-        # Logic: Run #26 Config (33mins) + V28 Tool (New) + Trinity Files
-        echo "⚠️ Starting V32 Procedure (Best of All Worlds)..."
-        cd device/nothing/galaga
-        
-        # 1. Download Surgeon Tool (MASTER BRANCH for Android 14)
-        wget https://raw.githubusercontent.com/LineageOS/android_system_tools_mkbootimg/master/unpack_bootimg.py -O unpack_bootimg.py
-        
-        # 2. Download The Trinity
-        echo "⬇️ Downloading Files..."
-        wget "https://files.catbox.moe/j5ib7r.img" -O full_boot.img
-        wget "https://files.catbox.moe/f1854z.img" -O dtbo.img
-        wget "https://files.catbox.moe/6kziny.img" -O vendor_boot.img
-        
-        # 3. Extract Kernel
-        python3 unpack_bootimg.py --boot_img full_boot.img --out . || true
-        if [ -f "kernel" ]; then
-            echo "✅ Kernel found."
-        else
-            mv *kernel* kernel || echo "⚠️ Kernel rename skip"
-        fi
-        
-        # 4. Extract DTB (Header V4)
-        python3 unpack_bootimg.py --boot_img vendor_boot.img --out out_vendor || true
-        if [ -f "out_vendor/dtb" ]; then
-            mv out_vendor/dtb dtb.img
-            echo "✅ DTB Extracted!"
-        fi
-        
-        # --- CONFIGURATION (RESTORED TO RUN #26 STATE) ---
-        
-        echo 'DEVICE_PATH := device/nothing/galaga' > BoardConfig.mk
-        echo 'TARGET_ARCH := arm64' >> BoardConfig.mk
-        echo 'TARGET_ARCH_VARIANT := armv8-a' >> BoardConfig.mk
-        echo 'TARGET_CPU_ABI := arm64-v8a' >> BoardConfig.mk
-        echo 'TARGET_CPU_VARIANT := generic' >> BoardConfig.mk
-        echo 'TARGET_BOARD_PLATFORM := mt6886' >> BoardConfig.mk
-        echo 'TARGET_NO_BOOTLOADER := true' >> BoardConfig.mk
-        echo 'TARGET_USES_UEFI := true' >> BoardConfig.mk
-        echo 'BOARD_HAS_LARGE_FILESYSTEM := true' >> BoardConfig.mk
-        
-        # Sizing & Security Bypass (128MB)
-        echo 'BOARD_BOOTIMAGE_PARTITION_SIZE := 134217728' >> BoardConfig.mk
-        echo 'BOARD_RECOVERYIMAGE_PARTITION_SIZE := 134217728' >> BoardConfig.mk
-        echo 'BOARD_SYSTEMIMAGE_PARTITION_SIZE := 3221225472' >> BoardConfig.mk
-        echo 'BOARD_USERDATAIMAGE_PARTITION_SIZE := 3221225472' >> BoardConfig.mk
-        echo 'BOARD_FLASH_BLOCK_SIZE := 131072' >> BoardConfig.mk
-        echo 'BOARD_AVB_ENABLE := false' >> BoardConfig.mk
-        echo 'BOARD_AVB_RECOVERY_ADD_HASH_FOOTER := false' >> BoardConfig.mk
-        
-        # Screen (From V30)
-        echo 'TARGET_SCREEN_WIDTH := 1080' >> BoardConfig.mk
-        echo 'TARGET_SCREEN_HEIGHT := 2400' >> BoardConfig.mk
-        echo 'TW_THEME := portrait_hdpi' >> BoardConfig.mk
-
-        # INJECT PIECES
-        echo 'TARGET_PREBUILT_KERNEL := device/nothing/galaga/kernel' >> BoardConfig.mk
-        echo 'BOARD_KERNEL_IMAGE_NAME := Image' >> BoardConfig.mk
-        echo 'BOARD_PREBUILT_DTBOIMAGE := device/nothing/galaga/dtbo.img' >> BoardConfig.mk
-        
-        if [ -f "dtb.img" ]; then
-            echo 'TARGET_PREBUILT_DTB := device/nothing/galaga/dtb.img' >> BoardConfig.mk
-            echo 'BOARD_INCLUDE_DTB_IN_BOOTIMG := true' >> BoardConfig.mk
-            echo 'BOARD_MKBOOTIMG_ARGS += --dtb device/nothing/galaga/dtb.img' >> BoardConfig.mk
-        fi
-        
-        # 7. Android.mk
-        echo 'LOCAL_PATH := $(call my-dir)' > Android.mk
-        echo 'include $(call all-makefiles-under,$(LOCAL_PATH))' >> Android.mk
-
-        # 8. Product Config (BACK TO RUN #26 - FULL BASE)
-        echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)' > omni_galaga.mk
-        echo '$(call inherit-product, device/nothing/galaga/device.mk)' >> omni_galaga.mk
-        echo 'PRODUCT_DEVICE := galaga' >> omni_galaga.mk
-        echo 'PRODUCT_NAME := omni_galaga' >> omni_galaga.mk
-        echo 'PRODUCT_BRAND := Nothing' >> omni_galaga.mk
-        echo 'PRODUCT_MODEL := CMF Phone 2 Pro' >> omni_galaga.mk
-        
-        echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)' > device.mk
-        
-        echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/omni_galaga.mk' > AndroidProducts.mk
-        echo 'COMMON_LUNCH_CHOICES := omni_galaga-eng' >> AndroidProducts.mk
-        
-        cd ../../..
-        
-        # --- BUILD START ---
-        echo "🚀 Starting Build..."
-        lunch omni_galaga-eng
-        mka recoveryimage || echo "❌ BUILD FAILED!"
-        
-        # --- DEBUG CHECK ---
-        echo "🔎 Checking output..."
-        find out/target/product/galaga -name "recovery.img"
+        lunch twrp_galaga-eng || lunch omni_galaga-eng
+        mka recoveryimage
 
     - name: Upload Recovery Image
       uses: actions/upload-artifact@v4
@@ -149,3 +57,5 @@ jobs:
         name: TWRP-Recovery
         path: workspace/out/target/product/galaga/recovery.img
         if-no-files-found: error
+
+EDF
