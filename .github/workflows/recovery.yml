@@ -57,5 +57,3 @@ jobs:
         name: TWRP-Recovery
         path: workspace/out/target/product/galaga/recovery.img
         if-no-files-found: error
-
-EDF
