@@ -49,11 +49,11 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         
-        # --- ARCHITECT FIX V28 REPEAT: THE MODERNIZER ---
-        echo "⚠️ Starting V29 Procedure (64-Bit Patch)..."
+        # --- ARCHITECT FIX V30: RESTORE SCREEN RESOLUTION ---
+        echo "⚠️ Starting V30 Procedure (Resolution Fix)..."
         cd device/nothing/galaga
         
-        # 1. Download Surgeon Tool (MASTER BRANCH for Android 14 Support)
+        # 1. Download Surgeon Tool (MASTER BRANCH)
         wget https://raw.githubusercontent.com/LineageOS/android_system_tools_mkbootimg/master/unpack_bootimg.py -O unpack_bootimg.py
         
         # 2. Download ALL Patient Files
@@ -62,7 +62,7 @@ jobs:
         wget "https://files.catbox.moe/f1854z.img" -O dtbo.img
         wget "https://files.catbox.moe/6kziny.img" -O vendor_boot.img
         
-        # 3. Extract Kernel from Boot
+        # 3. Extract Kernel
         echo "🔪 Extracting Kernel..."
         python3 unpack_bootimg.py --boot_img full_boot.img --out . || true
         if [ -f "kernel" ]; then
@@ -71,15 +71,12 @@ jobs:
             mv *kernel* kernel || echo "⚠️ Kernel rename skip"
         fi
         
-        # 4. Extract DTB from Vendor Boot (Header V4)
+        # 4. Extract DTB
         echo "🧠 Extracting DTB from Vendor..."
         python3 unpack_bootimg.py --boot_img vendor_boot.img --out out_vendor || true
-        
         if [ -f "out_vendor/dtb" ]; then
             mv out_vendor/dtb dtb.img
             echo "✅ DTB Extracted Successfully!"
-        else
-            echo "⚠️ No DTB found. Proceeding without it."
         fi
         
         # --- CONFIGURATION ---
@@ -93,6 +90,11 @@ jobs:
         echo 'TARGET_NO_BOOTLOADER := true' >> BoardConfig.mk
         echo 'TARGET_USES_UEFI := true' >> BoardConfig.mk
         echo 'BOARD_HAS_LARGE_FILESYSTEM := true' >> BoardConfig.mk
+        
+        # --- V30 FIX: SCREEN SETTINGS (Restored) ---
+        echo 'TARGET_SCREEN_WIDTH := 1080' >> BoardConfig.mk
+        echo 'TARGET_SCREEN_HEIGHT := 2400' >> BoardConfig.mk
+        echo 'TW_THEME := portrait_hdpi' >> BoardConfig.mk
         
         # Sizing & Security Bypass
         echo 'BOARD_BOOTIMAGE_PARTITION_SIZE := 134217728' >> BoardConfig.mk
@@ -118,7 +120,7 @@ jobs:
         echo 'LOCAL_PATH := $(call my-dir)' > Android.mk
         echo 'include $(call all-makefiles-under,$(LOCAL_PATH))' >> Android.mk
 
-        # 8. Product Config (FIX: ADDED CORE_64_BIT)
+        # 8. Product Config (64-Bit)
         echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)' > omni_galaga.mk
         echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)' >> omni_galaga.mk
         echo '$(call inherit-product, device/nothing/galaga/device.mk)' >> omni_galaga.mk
