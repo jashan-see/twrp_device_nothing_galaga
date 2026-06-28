@@ -49,7 +49,7 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         
-        # --- ARCHITECT FIX V11: RESOLUTION PATCH ---
+        # --- ARCHITECT FIX V12: KERNEL NAME PATCH ---
         echo "⚠️ Fixing empty device tree..."
         cd device/nothing/galaga
         
@@ -65,10 +65,13 @@ jobs:
         echo 'BOARD_HAS_LARGE_FILESYSTEM := true' >> BoardConfig.mk
         echo 'TARGET_SUPPORTS_64_BIT_APPS := true' >> BoardConfig.mk
         
-        # --- NEW: SCREEN RESOLUTION ---
+        # --- SCREEN SETTINGS ---
         echo 'TARGET_SCREEN_WIDTH := 1080' >> BoardConfig.mk
         echo 'TARGET_SCREEN_HEIGHT := 2400' >> BoardConfig.mk
         echo 'TW_THEME := portrait_hdpi' >> BoardConfig.mk
+        
+        # --- THE FIX: KERNEL NAME ---
+        echo 'BOARD_KERNEL_IMAGE_NAME := Image' >> BoardConfig.mk
         
         # 2. Create omni_galaga.mk (The Product)
         echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)' > omni_galaga.mk
