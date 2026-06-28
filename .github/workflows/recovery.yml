@@ -1,62 +1,25 @@
 
-name: Mobile Cloud Compiler
+name: TWRP Recovery Builder
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-    - name: Check Out Code
+    - name: Checkout Workflows
       uses: actions/checkout@v4
 
-    - name: Clean Up Space
-      run: |
-        sudo rm -rf /usr/share/dotnet /etc/mysql /etc/php
-        sudo apt-get clean
-
-    - name: Initialize Workspace
-      run: |
-        mkdir -p workspace
-
-    - name: Prepare Build Environment
-      run: |
-        sudo apt update
-        sudo apt -y install git-core gnupg flex bison gperf build-essential zip curl zlib1g-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig
-
-    - name: Install Repo
-      run: |
-        mkdir -p ~/bin
-        curl https://googleapis.com > ~/bin/repo
-        chmod a+x ~/bin/repo
-        sudo ln -sf ~/bin/repo /usr/bin/repo
-
-    - name: Sync TWRP Source (Minimal)
-      run: |
-        cd workspace
-        git config --global user.name "jashan-see"
-        git config --global user.email "jashan@example.com"
-        repo init --depth=1 -u https://github.com -b twrp-12.1
-        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
-
-    - name: Clone Your Device Tree
-      run: |
-        cd workspace
-        git clone https://github.com device/nothing/galaga
-
-    - name: Compile Recovery
-      run: |
-        cd workspace
-        export ALLOW_MISSING_DEPENDENCIES=true
-        source build/envsetup.sh
-        lunch twrp_galaga-eng || lunch omni_galaga-eng
-        mka recoveryimage
-
-    - name: Upload Recovery Image
-      uses: actions/upload-artifact@v4
+    - name: Run TWRP Compilation Engine
+      uses: bunnykek/Action-TWRP-Builder@master
       with:
-        name: TWRP-Recovery
-        path: workspace/out/target/product/galaga/recovery.img
-        if-no-files-found: error
+        MANIFEST_URL: 'https://github.com'
+        MANIFEST_BRANCH: 'twrp-12.1'
+        DEVICE_TREE_URL: 'https://github.com'
+        DEVICE_TREE_BRANCH: 'main'
+        DEVICE_PATH: 'device/nothing/galaga'
+        DEVICE_NAME: 'galaga'
+        MAKEFILE_NAME: 'twrp_galaga'
+        BUILD_TARGET: 'recovery'
 
