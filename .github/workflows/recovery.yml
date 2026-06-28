@@ -41,7 +41,7 @@ jobs:
     - name: Clone Your Device Tree
       run: |
         cd workspace
-        git clone https://github.com/jashan-see/twrp_device_nothing_galaga.git device/nothing/galaga
+        git clone https://github.com device/nothing/galaga
 
     - name: Compile Recovery
       run: |
