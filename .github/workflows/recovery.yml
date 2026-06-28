@@ -49,12 +49,11 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         
-        # --- ARCHITECT FIX V15: THE PHANTOM ENGINE ---
-        echo "⚠️ Generating Dummy Kernel..."
+        # --- ARCHITECT FIX V16: DIMENSIONS ---
+        echo "⚠️ Setting Partition Sizes..."
         cd device/nothing/galaga
         
-        # 1. Create a Fake Kernel (10MB)
-        # This tricks the build system into creating the image!
+        # 1. Create Dummy Kernel (10MB)
         dd if=/dev/zero of=kernel bs=1M count=10
         
         # 2. BoardConfig.mk (The Blueprint)
@@ -72,12 +71,16 @@ jobs:
         echo 'TARGET_SCREEN_HEIGHT := 2400' >> BoardConfig.mk
         echo 'TW_THEME := portrait_hdpi' >> BoardConfig.mk
         
-        # --- THE FIX: POINT TO DUMMY KERNEL ---
-        echo 'TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/kernel' >> BoardConfig.mk
-        echo 'BOARD_BOOTIMG_HEADER_VERSION := 2' >> BoardConfig.mk
-        echo 'BOARD_KERNEL_BASE := 0x40000000' >> BoardConfig.mk
-        echo 'BOARD_KERNEL_PAGESIZE := 2048' >> BoardConfig.mk
-        echo 'BOARD_MKBOOTIMG_ARGS += --header_version $(BOARD_BOOTIMG_HEADER_VERSION)' >> BoardConfig.mk
+        # --- THE FIX: PARTITION SIZES ---
+        echo 'BOARD_BOOTIMAGE_PARTITION_SIZE := 67108864' >> BoardConfig.mk
+        echo 'BOARD_RECOVERYIMAGE_PARTITION_SIZE := 67108864' >> BoardConfig.mk
+        echo 'BOARD_SYSTEMIMAGE_PARTITION_SIZE := 3221225472' >> BoardConfig.mk
+        echo 'BOARD_USERDATAIMAGE_PARTITION_SIZE := 3221225472' >> BoardConfig.mk
+        echo 'BOARD_FLASH_BLOCK_SIZE := 131072' >> BoardConfig.mk
+        
+        # --- THE FIX: HARDCODED KERNEL PATH ---
+        echo 'TARGET_PREBUILT_KERNEL := device/nothing/galaga/kernel' >> BoardConfig.mk
+        echo 'BOARD_KERNEL_IMAGE_NAME := Image' >> BoardConfig.mk
         
         # 3. Android.mk (The Anchor)
         echo 'LOCAL_PATH := $(call my-dir)' > Android.mk
@@ -91,10 +94,8 @@ jobs:
         echo 'PRODUCT_BRAND := Nothing' >> omni_galaga.mk
         echo 'PRODUCT_MODEL := CMF Phone 2 Pro' >> omni_galaga.mk
         
-        # 5. Clean Device Config (device.mk)
+        # 5. Clean Device Config
         echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)' > device.mk
-        echo 'PRODUCT_SHIPPING_API_LEVEL := 30' >> device.mk
-        echo 'PRODUCT_USE_DYNAMIC_PARTITIONS := true' >> device.mk
         
         # 6. Menu (AndroidProducts.mk)
         echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/omni_galaga.mk' > AndroidProducts.mk
