@@ -1,0 +1,1 @@
+TARGET_SUPPORTS_64_BIT_APPS := false
