@@ -54,7 +54,6 @@ jobs:
         cd device/nothing/galaga
         
         # 1. DOWNLOAD REAL ENGINE (Your Link)
-        # We rename it to 'kernel' so the build system finds it
         wget "https://files.catbox.moe/j5ib7r.img" -O kernel
         
         # 2. BoardConfig.mk (The Blueprint)
