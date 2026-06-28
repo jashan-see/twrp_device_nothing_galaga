@@ -49,7 +49,7 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         
-        # --- ARCHITECT FIX: GENERATE ALL MISSING KEYS ---
+        # --- ARCHITECT FIX V10: GENERATE MISSING KEYS ---
         echo "⚠️ Fixing empty device tree..."
         cd device/nothing/galaga
         
@@ -63,6 +63,9 @@ jobs:
         echo 'TARGET_NO_BOOTLOADER := true' >> BoardConfig.mk
         echo 'TARGET_USES_UEFI := true' >> BoardConfig.mk
         echo 'BOARD_HAS_LARGE_FILESYSTEM := true' >> BoardConfig.mk
+        
+        # --- THE FIX: FORCE 64-BIT APPS ---
+        echo 'TARGET_SUPPORTS_64_BIT_APPS := true' >> BoardConfig.mk
         
         # 2. Create omni_galaga.mk (The Product)
         echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)' > omni_galaga.mk
