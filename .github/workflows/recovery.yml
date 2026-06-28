@@ -49,22 +49,27 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         
-        # --- ARCHITECT FIX V25: FORCE BUILD ---
-        echo "⚠️ Starting V25 Procedure (No Limits)..."
+        # --- ARCHITECT FIX V26: THE MERGER ---
+        echo "⚠️ Starting V26 Procedure (Kernel + DTBO)..."
         cd device/nothing/galaga
         
         # 1. Download Surgeon Tool
         wget https://raw.githubusercontent.com/LineageOS/android_system_tools_mkbootimg/lineage-18.1/unpack_bootimg.py -O unpack_bootimg.py
         
-        # 2. Download Patient (Your 64MB File)
+        # 2. Download Patient (Your 64MB Boot Image)
+        echo "⬇️ Downloading Boot Image..."
         wget "https://files.catbox.moe/j5ib7r.img" -O full_boot.img
         
         # 3. Extract Kernel
+        echo "🔪 Extracting Kernel..."
         python3 unpack_bootimg.py --boot_img full_boot.img --out .
         mv *kernel* kernel || true
         
-        # --- CONFIGURATION (THE LIE) ---
-        # We tell the robot the partition is 128MB so it stops complaining.
+        # 4. Download DTBO (The Missing Piece)
+        echo "⬇️ Downloading DTBO..."
+        wget "https://files.catbox.moe/f1854z.img" -O dtbo.img
+        
+        # --- CONFIGURATION (THE COMPLETE BLUEPRINT) ---
         
         echo 'DEVICE_PATH := device/nothing/galaga' > BoardConfig.mk
         echo 'TARGET_ARCH := arm64' >> BoardConfig.mk
@@ -80,7 +85,7 @@ jobs:
         echo 'TARGET_SCREEN_HEIGHT := 2400' >> BoardConfig.mk
         echo 'TW_THEME := portrait_hdpi' >> BoardConfig.mk
         
-        # FORCE SIZE: 128MB (This ensures the build never fails due to size)
+        # FORCE SIZE: 128MB (To prevent size errors)
         echo 'BOARD_BOOTIMAGE_PARTITION_SIZE := 134217728' >> BoardConfig.mk
         echo 'BOARD_RECOVERYIMAGE_PARTITION_SIZE := 134217728' >> BoardConfig.mk
         echo 'BOARD_SYSTEMIMAGE_PARTITION_SIZE := 3221225472' >> BoardConfig.mk
@@ -91,8 +96,10 @@ jobs:
         echo 'BOARD_AVB_ENABLE := false' >> BoardConfig.mk
         echo 'BOARD_AVB_RECOVERY_ADD_HASH_FOOTER := false' >> BoardConfig.mk
         
+        # INJECT THE PIECES (Kernel + DTBO)
         echo 'TARGET_PREBUILT_KERNEL := device/nothing/galaga/kernel' >> BoardConfig.mk
         echo 'BOARD_KERNEL_IMAGE_NAME := Image' >> BoardConfig.mk
+        echo 'BOARD_PREBUILT_DTBOIMAGE := device/nothing/galaga/dtbo.img' >> BoardConfig.mk
         
         # 7. Android.mk
         echo 'LOCAL_PATH := $(call my-dir)' > Android.mk
