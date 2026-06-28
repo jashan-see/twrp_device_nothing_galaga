@@ -49,28 +49,35 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         
-        # --- ARCHITECT FIX V21: THE SURGEON ---
-        echo "⚠️ Downloading Full Boot Image..."
+        # --- ARCHITECT FIX V22: THE AIRDROP ---
+        echo "⚠️ Starting Surgical Procedure..."
         cd device/nothing/galaga
         
-        # 1. Download the "Sandwich" (64MB File)
+        # 1. Download the SURGICAL TOOLS (Direct from Google)
+        echo "⬇️ Downloading Unpack Tools..."
+        git clone https://android.googlesource.com/platform/system/tools/mkbootimg mkbootimg_tools
+        
+        # 2. Download the PATIENT (Your 64MB File)
+        echo "⬇️ Downloading Boot Image..."
         wget "https://files.catbox.moe/j5ib7r.img" -O full_boot.img
         
-        # 2. Locate the Scalpel (Unpack Tool)
-        # It lives in the system tools we just downloaded
-        UNPACK_TOOL="../../../system/tools/mkbootimg/unpack_bootimg.py"
-        chmod +x $UNPACK_TOOL
+        # 3. Perform SURGERY (Extract Kernel)
+        echo "🔪 Extracting Kernel..."
+        python3 mkbootimg_tools/unpack_bootimg.py --boot_img full_boot.img --out .
         
-        # 3. Extract the Meat (Kernel)
-        echo "🔪 Extracting Kernel from Boot Image..."
-        python3 $UNPACK_TOOL --boot_img full_boot.img --out .
+        # 4. Identify and Rename the Heart
+        echo "🔎 Identifying parts..."
+        ls -lh
+        # Usually named 'kernel', but just in case, we rename any kernel-like file
+        mv *kernel* kernel || true
         
-        # 4. Clean up (Throw away the bread)
-        rm full_boot.img 
-        
-        # 5. Verify Extraction
-        echo "🔎 Checking extracted kernel..."
-        ls -lh kernel
+        # 5. Verify Success
+        if [ -f "kernel" ]; then
+            echo "✅ Kernel Extracted Successfully!"
+        else
+            echo "❌ CRITICAL FAILURE: Kernel not found!"
+            exit 1
+        fi
         
         # --- CONFIGURATION ---
         
