@@ -49,11 +49,20 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         
-        # --- ARCHITECT FIX V13: DEBUG MODE ---
-        echo "⚠️ Generating Device Tree..."
+        # --- ARCHITECT FIX V14: THE ANCHOR ---
+        echo "⚠️ Repairing Device Tree..."
         cd device/nothing/galaga
         
-        # 1. Blueprint (BoardConfig.mk)
+        # 1. THE ANCHOR (Android.mk) - This makes the folder visible!
+        echo 'LOCAL_PATH := $(call my-dir)' > Android.mk
+        echo 'include $(call all-makefiles-under,$(LOCAL_PATH))' >> Android.mk
+        
+        # 2. Clean Device Config (device.mk)
+        echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)' > device.mk
+        echo 'PRODUCT_SHIPPING_API_LEVEL := 30' >> device.mk
+        echo 'PRODUCT_USE_DYNAMIC_PARTITIONS := true' >> device.mk
+        
+        # 3. Blueprint (BoardConfig.mk)
         echo 'DEVICE_PATH := device/nothing/galaga' > BoardConfig.mk
         echo 'TARGET_ARCH := arm64' >> BoardConfig.mk
         echo 'TARGET_ARCH_VARIANT := armv8-a' >> BoardConfig.mk
@@ -69,7 +78,7 @@ jobs:
         echo 'TW_THEME := portrait_hdpi' >> BoardConfig.mk
         echo 'BOARD_KERNEL_IMAGE_NAME := Image' >> BoardConfig.mk
         
-        # 2. Product (omni_galaga.mk)
+        # 4. Product (omni_galaga.mk)
         echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)' > omni_galaga.mk
         echo '$(call inherit-product, device/nothing/galaga/device.mk)' >> omni_galaga.mk
         echo 'PRODUCT_DEVICE := galaga' >> omni_galaga.mk
@@ -77,20 +86,22 @@ jobs:
         echo 'PRODUCT_BRAND := Nothing' >> omni_galaga.mk
         echo 'PRODUCT_MODEL := CMF Phone 2 Pro' >> omni_galaga.mk
         
-        # 3. Menu (AndroidProducts.mk)
+        # 5. Menu (AndroidProducts.mk)
         echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/omni_galaga.mk' > AndroidProducts.mk
         echo 'COMMON_LUNCH_CHOICES := omni_galaga-eng' >> AndroidProducts.mk
         
+        echo "✅ Device Tree Repaired! Files:"
+        ls -la
         cd ../../..
         
         # --- BUILD START ---
-        echo "🚀 Starting Build Process..."
+        echo "🚀 Starting Build..."
         lunch omni_galaga-eng
-        mka recoveryimage || echo "❌ BUILD FAILED! Checking logs..."
+        mka recoveryimage || echo "❌ BUILD FAILED!"
         
-        # --- FILE HUNTER ---
-        echo "🔎 Searching for recovery.img..."
-        find . -name "recovery.img"
+        # --- DEBUG CHECK ---
+        echo "🔎 Checking output..."
+        find out/target/product/galaga -name "recovery.img"
 
     - name: Upload Recovery Image
       uses: actions/upload-artifact@v4
