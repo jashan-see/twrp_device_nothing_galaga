@@ -1,0 +1,58 @@
+name: Mobile Cloud Compiler
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Check Out Code
+      uses: actions/checkout@v3
+
+    - name: Clean Up Space
+      uses: rokibhasansagar/slimhub_actions@main
+
+    - name: Initialize Workspace
+      run: |
+        mkdir workspace
+        cd workspace
+        echo "Workspace Initialized"
+
+    - name: Prepare Build Environment
+      run: |
+        sudo apt update
+        sudo apt -y install git-core gnupg flex bison gperf build-essential zip curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig
+
+    - name: Install Repo
+      run: |
+        mkdir ~/bin
+        curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+        chmod a+x ~/bin/repo
+        sudo ln -sf ~/bin/repo /usr/bin/repo
+
+    - name: Sync TWRP Source (Minimal)
+      run: |
+        cd workspace
+        repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
+        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+
+    - name: Clone Your Device Tree
+      run: |
+        cd workspace
+        git clone https://github.com/jashan-see/twrp_device_nothing_galaga.git device/nothing/galaga
+
+    - name: Compile Recovery
+      run: |
+        cd workspace
+        export ALLOW_MISSING_DEPENDENCIES=true
+        source build/envsetup.sh
+        lunch twrp_galaga-eng
+        mka recoveryimage
+
+    - name: Upload Recovery Image
+      uses: actions/upload-artifact@v3
+      with:
+        name: TWRP-Recovery
+        path: workspace/out/target/product/galaga/recovery.img
