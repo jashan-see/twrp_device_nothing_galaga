@@ -48,7 +48,19 @@ jobs:
         cd workspace
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
-        lunch twrp_galaga-eng
+        
+        # --- SMART DETECT LOGIC ---
+        echo "Detecting Product Name..."
+        # Find the makefile (omni_galaga.mk or twrp_galaga.mk)
+        LUNCH_COMBO=$(basename $(ls device/nothing/galaga/omni_*.mk device/nothing/galaga/twrp_*.mk 2>/dev/null | head -1) .mk)
+        
+        if [ -z "$LUNCH_COMBO" ]; then
+            echo "CRITICAL: No device makefile found! Trying manual fallback..."
+            LUNCH_COMBO="omni_galaga"
+        fi
+        
+        echo "Found Product: $LUNCH_COMBO"
+        lunch ${LUNCH_COMBO}-eng
         mka recoveryimage
 
     - name: Upload Recovery Image
