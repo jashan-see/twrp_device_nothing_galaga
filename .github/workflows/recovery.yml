@@ -35,6 +35,8 @@ jobs:
     - name: Sync TWRP Source (Minimal)
       run: |
         cd workspace
+        git config --global user.name "jashan-see"
+        git config --global user.email "jashan@example.com"
         repo init --depth=1 -u https://github.com -b twrp-12.1
         repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
 
@@ -57,3 +59,4 @@ jobs:
         name: TWRP-Recovery
         path: workspace/out/target/product/galaga/recovery.img
         if-no-files-found: error
+
