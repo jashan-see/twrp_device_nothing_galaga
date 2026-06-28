@@ -49,8 +49,8 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         
-        # --- ARCHITECT FIX V28: THE MODERNIZER ---
-        echo "⚠️ Starting V28 Procedure (Android 14 Support)..."
+        # --- ARCHITECT FIX V28 REPEAT: THE MODERNIZER ---
+        echo "⚠️ Starting V29 Procedure (64-Bit Patch)..."
         cd device/nothing/galaga
         
         # 1. Download Surgeon Tool (MASTER BRANCH for Android 14 Support)
@@ -62,27 +62,24 @@ jobs:
         wget "https://files.catbox.moe/f1854z.img" -O dtbo.img
         wget "https://files.catbox.moe/6kziny.img" -O vendor_boot.img
         
-        # 3. Extract Kernel from Boot (Suppress Errors)
+        # 3. Extract Kernel from Boot
         echo "🔪 Extracting Kernel..."
         python3 unpack_bootimg.py --boot_img full_boot.img --out . || true
-        # Handle the naming conflict
         if [ -f "kernel" ]; then
             echo "✅ Kernel found."
         else
-            mv *kernel* kernel || echo "⚠️ Could not rename kernel (might already be named correctly)"
+            mv *kernel* kernel || echo "⚠️ Kernel rename skip"
         fi
         
-        # 4. Extract DTB from Vendor Boot (The Brain)
-        echo "🧠 Extracting DTB from Vendor (Header V4)..."
-        # We use || true so it doesn't crash if it fails
+        # 4. Extract DTB from Vendor Boot (Header V4)
+        echo "🧠 Extracting DTB from Vendor..."
         python3 unpack_bootimg.py --boot_img vendor_boot.img --out out_vendor || true
         
-        # Safely move DTB only if it exists
         if [ -f "out_vendor/dtb" ]; then
             mv out_vendor/dtb dtb.img
             echo "✅ DTB Extracted Successfully!"
         else
-            echo "⚠️ No DTB found or extraction failed. Proceeding without it (Safe Mode)."
+            echo "⚠️ No DTB found. Proceeding without it."
         fi
         
         # --- CONFIGURATION ---
@@ -106,23 +103,24 @@ jobs:
         echo 'BOARD_AVB_ENABLE := false' >> BoardConfig.mk
         echo 'BOARD_AVB_RECOVERY_ADD_HASH_FOOTER := false' >> BoardConfig.mk
         
-        # INJECT PIECES (Only if they exist)
+        # INJECT PIECES
         echo 'TARGET_PREBUILT_KERNEL := device/nothing/galaga/kernel' >> BoardConfig.mk
         echo 'BOARD_KERNEL_IMAGE_NAME := Image' >> BoardConfig.mk
         echo 'BOARD_PREBUILT_DTBOIMAGE := device/nothing/galaga/dtbo.img' >> BoardConfig.mk
         
-        # Conditional Injection for DTB
         if [ -f "dtb.img" ]; then
             echo 'TARGET_PREBUILT_DTB := device/nothing/galaga/dtb.img' >> BoardConfig.mk
             echo 'BOARD_INCLUDE_DTB_IN_BOOTIMG := true' >> BoardConfig.mk
             echo 'BOARD_MKBOOTIMG_ARGS += --dtb device/nothing/galaga/dtb.img' >> BoardConfig.mk
         fi
         
-        # Standard Config
+        # 7. Android.mk
         echo 'LOCAL_PATH := $(call my-dir)' > Android.mk
         echo 'include $(call all-makefiles-under,$(LOCAL_PATH))' >> Android.mk
 
-        echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)' > omni_galaga.mk
+        # 8. Product Config (FIX: ADDED CORE_64_BIT)
+        echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)' > omni_galaga.mk
+        echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)' >> omni_galaga.mk
         echo '$(call inherit-product, device/nothing/galaga/device.mk)' >> omni_galaga.mk
         echo 'PRODUCT_DEVICE := galaga' >> omni_galaga.mk
         echo 'PRODUCT_NAME := omni_galaga' >> omni_galaga.mk
