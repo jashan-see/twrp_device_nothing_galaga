@@ -21,5 +21,5 @@ jobs:
         DEVICE_PATH: 'device/nothing/galaga'
         DEVICE_NAME: 'galaga'
         MAKEFILE_NAME: 'twrp_galaga'
-        BUILD_TARGET: 'recovery'
+        BUILD_TARGET: 'vendor_boot'
 
