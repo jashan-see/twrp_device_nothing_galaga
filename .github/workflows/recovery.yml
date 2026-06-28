@@ -49,14 +49,32 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         
-        # --- ARCHITECT FIX V19: THE REAL ENGINE ---
-        echo "⚠️ Downloading Real Kernel..."
+        # --- ARCHITECT FIX V21: THE SURGEON ---
+        echo "⚠️ Downloading Full Boot Image..."
         cd device/nothing/galaga
         
-        # 1. DOWNLOAD REAL ENGINE (Your Link)
-        wget "https://files.catbox.moe/j5ib7r.img" -O kernel
+        # 1. Download the "Sandwich" (64MB File)
+        wget "https://files.catbox.moe/j5ib7r.img" -O full_boot.img
         
-        # 2. BoardConfig.mk (The Blueprint)
+        # 2. Locate the Scalpel (Unpack Tool)
+        # It lives in the system tools we just downloaded
+        UNPACK_TOOL="../../../system/tools/mkbootimg/unpack_bootimg.py"
+        chmod +x $UNPACK_TOOL
+        
+        # 3. Extract the Meat (Kernel)
+        echo "🔪 Extracting Kernel from Boot Image..."
+        python3 $UNPACK_TOOL --boot_img full_boot.img --out .
+        
+        # 4. Clean up (Throw away the bread)
+        rm full_boot.img 
+        
+        # 5. Verify Extraction
+        echo "🔎 Checking extracted kernel..."
+        ls -lh kernel
+        
+        # --- CONFIGURATION ---
+        
+        # 6. BoardConfig.mk (The Blueprint)
         echo 'DEVICE_PATH := device/nothing/galaga' > BoardConfig.mk
         echo 'TARGET_ARCH := arm64' >> BoardConfig.mk
         echo 'TARGET_ARCH_VARIANT := armv8-a' >> BoardConfig.mk
@@ -71,22 +89,22 @@ jobs:
         echo 'TARGET_SCREEN_HEIGHT := 2400' >> BoardConfig.mk
         echo 'TW_THEME := portrait_hdpi' >> BoardConfig.mk
         
-        # --- THE FIX: PARTITION SIZES ---
+        # Partition Sizes (64MB)
         echo 'BOARD_BOOTIMAGE_PARTITION_SIZE := 67108864' >> BoardConfig.mk
         echo 'BOARD_RECOVERYIMAGE_PARTITION_SIZE := 67108864' >> BoardConfig.mk
         echo 'BOARD_SYSTEMIMAGE_PARTITION_SIZE := 3221225472' >> BoardConfig.mk
         echo 'BOARD_USERDATAIMAGE_PARTITION_SIZE := 3221225472' >> BoardConfig.mk
         echo 'BOARD_FLASH_BLOCK_SIZE := 131072' >> BoardConfig.mk
         
-        # --- THE FIX: POINT TO REAL KERNEL ---
+        # Point to the Extracted Kernel
         echo 'TARGET_PREBUILT_KERNEL := device/nothing/galaga/kernel' >> BoardConfig.mk
         echo 'BOARD_KERNEL_IMAGE_NAME := Image' >> BoardConfig.mk
         
-        # 3. Android.mk (The Anchor)
+        # 7. Android.mk
         echo 'LOCAL_PATH := $(call my-dir)' > Android.mk
         echo 'include $(call all-makefiles-under,$(LOCAL_PATH))' >> Android.mk
 
-        # 4. Product (omni_galaga.mk)
+        # 8. Product Config
         echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)' > omni_galaga.mk
         echo '$(call inherit-product, device/nothing/galaga/device.mk)' >> omni_galaga.mk
         echo 'PRODUCT_DEVICE := galaga' >> omni_galaga.mk
@@ -94,10 +112,10 @@ jobs:
         echo 'PRODUCT_BRAND := Nothing' >> omni_galaga.mk
         echo 'PRODUCT_MODEL := CMF Phone 2 Pro' >> omni_galaga.mk
         
-        # 5. Clean Device Config
+        # 9. Clean Device Config
         echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)' > device.mk
         
-        # 6. Menu (AndroidProducts.mk)
+        # 10. Menu
         echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/omni_galaga.mk' > AndroidProducts.mk
         echo 'COMMON_LUNCH_CHOICES := omni_galaga-eng' >> AndroidProducts.mk
         
