@@ -49,27 +49,30 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         source build/envsetup.sh
         
-        # --- ARCHITECT FIX V26: THE MERGER ---
-        echo "⚠️ Starting V26 Procedure (Kernel + DTBO)..."
+        # --- ARCHITECT FIX V27: THE TRINITY ---
+        echo "⚠️ Starting V27 Procedure (Kernel + DTBO + VendorBoot)..."
         cd device/nothing/galaga
         
         # 1. Download Surgeon Tool
         wget https://raw.githubusercontent.com/LineageOS/android_system_tools_mkbootimg/lineage-18.1/unpack_bootimg.py -O unpack_bootimg.py
         
-        # 2. Download Patient (Your 64MB Boot Image)
-        echo "⬇️ Downloading Boot Image..."
+        # 2. Download ALL Patient Files
+        echo "⬇️ Downloading The Trinity..."
         wget "https://files.catbox.moe/j5ib7r.img" -O full_boot.img
+        wget "https://files.catbox.moe/f1854z.img" -O dtbo.img
+        wget "https://files.catbox.moe/6kziny.img" -O vendor_boot.img
         
-        # 3. Extract Kernel
+        # 3. Extract Kernel from Boot
         echo "🔪 Extracting Kernel..."
         python3 unpack_bootimg.py --boot_img full_boot.img --out .
         mv *kernel* kernel || true
         
-        # 4. Download DTBO (The Missing Piece)
-        echo "⬇️ Downloading DTBO..."
-        wget "https://files.catbox.moe/f1854z.img" -O dtbo.img
+        # 4. Extract DTB from Vendor Boot (The Brain)
+        echo "🧠 Extracting DTB from Vendor..."
+        python3 unpack_bootimg.py --boot_img vendor_boot.img --out out_vendor
+        mv out_vendor/dtb dtb.img || echo "⚠️ No DTB found in vendor (Minor)"
         
-        # --- CONFIGURATION (THE COMPLETE BLUEPRINT) ---
+        # --- CONFIGURATION ---
         
         echo 'DEVICE_PATH := device/nothing/galaga' > BoardConfig.mk
         echo 'TARGET_ARCH := arm64' >> BoardConfig.mk
@@ -80,32 +83,32 @@ jobs:
         echo 'TARGET_NO_BOOTLOADER := true' >> BoardConfig.mk
         echo 'TARGET_USES_UEFI := true' >> BoardConfig.mk
         echo 'BOARD_HAS_LARGE_FILESYSTEM := true' >> BoardConfig.mk
-        echo 'TARGET_SUPPORTS_64_BIT_APPS := true' >> BoardConfig.mk
-        echo 'TARGET_SCREEN_WIDTH := 1080' >> BoardConfig.mk
-        echo 'TARGET_SCREEN_HEIGHT := 2400' >> BoardConfig.mk
-        echo 'TW_THEME := portrait_hdpi' >> BoardConfig.mk
         
-        # FORCE SIZE: 128MB (To prevent size errors)
+        # Sizing & Security Bypass (128MB + No AVB)
         echo 'BOARD_BOOTIMAGE_PARTITION_SIZE := 134217728' >> BoardConfig.mk
         echo 'BOARD_RECOVERYIMAGE_PARTITION_SIZE := 134217728' >> BoardConfig.mk
         echo 'BOARD_SYSTEMIMAGE_PARTITION_SIZE := 3221225472' >> BoardConfig.mk
         echo 'BOARD_USERDATAIMAGE_PARTITION_SIZE := 3221225472' >> BoardConfig.mk
         echo 'BOARD_FLASH_BLOCK_SIZE := 131072' >> BoardConfig.mk
-        
-        # DISABLE SECURITY CHECKS
         echo 'BOARD_AVB_ENABLE := false' >> BoardConfig.mk
         echo 'BOARD_AVB_RECOVERY_ADD_HASH_FOOTER := false' >> BoardConfig.mk
         
-        # INJECT THE PIECES (Kernel + DTBO)
+        # INJECT ALL PIECES
         echo 'TARGET_PREBUILT_KERNEL := device/nothing/galaga/kernel' >> BoardConfig.mk
         echo 'BOARD_KERNEL_IMAGE_NAME := Image' >> BoardConfig.mk
         echo 'BOARD_PREBUILT_DTBOIMAGE := device/nothing/galaga/dtbo.img' >> BoardConfig.mk
         
-        # 7. Android.mk
+        # INJECT DTB (From Vendor_Boot)
+        if [ -f "dtb.img" ]; then
+            echo 'TARGET_PREBUILT_DTB := device/nothing/galaga/dtb.img' >> BoardConfig.mk
+            echo 'BOARD_INCLUDE_DTB_IN_BOOTIMG := true' >> BoardConfig.mk
+            echo 'BOARD_MKBOOTIMG_ARGS += --dtb device/nothing/galaga/dtb.img' >> BoardConfig.mk
+        fi
+        
+        # Standard Config
         echo 'LOCAL_PATH := $(call my-dir)' > Android.mk
         echo 'include $(call all-makefiles-under,$(LOCAL_PATH))' >> Android.mk
 
-        # 8. Product Config
         echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)' > omni_galaga.mk
         echo '$(call inherit-product, device/nothing/galaga/device.mk)' >> omni_galaga.mk
         echo 'PRODUCT_DEVICE := galaga' >> omni_galaga.mk
@@ -113,10 +116,8 @@ jobs:
         echo 'PRODUCT_BRAND := Nothing' >> omni_galaga.mk
         echo 'PRODUCT_MODEL := CMF Phone 2 Pro' >> omni_galaga.mk
         
-        # 9. Clean Device Config
         echo '$(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)' > device.mk
         
-        # 10. Menu
         echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/omni_galaga.mk' > AndroidProducts.mk
         echo 'COMMON_LUNCH_CHOICES := omni_galaga-eng' >> AndroidProducts.mk
         
